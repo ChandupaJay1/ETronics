@@ -1,0 +1,2 @@
+UpdateProduct
+UpdateProductServlet
