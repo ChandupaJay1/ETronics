@@ -1,13 +1,12 @@
 package controller;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import dto.Response_DTO;
 import entity.*;
 import model.HibernateUtil;
 import model.Validation;
-import org.hibernate.Criteria;
 import org.hibernate.Session;
-import org.hibernate.criterion.Restrictions;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -21,31 +20,49 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @MultipartConfig
-@WebServlet(name = "UpdateProduct", urlPatterns = {"/UpdateProduct"})
+@WebServlet(name = "UpdateProduct", urlPatterns = { "/UpdateProduct" })
 public class UpdateProduct extends HttpServlet {
 
+    /**
+     *
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
         Response_DTO responseDTO = new Response_DTO();
         Gson gson = new Gson();
+        JsonObject jsonRequest = gson.fromJson(request.getReader(), JsonObject.class);
 
         // Get parameters
-        String productId = request.getParameter("productId");
-        String categoryId = request.getParameter("categoryId");
-        String modelId = request.getParameter("modelId");
-        String title = request.getParameter("title");
-        String description = request.getParameter("description");
-        String colorId = request.getParameter("colorId");
-        String price = request.getParameter("price");
-        String quantity = request.getParameter("quantity");
+        String productId = jsonRequest.get("productId").getAsString();
+        String categoryId = jsonRequest.get("categoryId").getAsString();
+        String modelId = jsonRequest.get("modelId").getAsString();
+        String title = jsonRequest.get("title").getAsString();
+        String description = jsonRequest.get("description").getAsString();
+        String colorId = jsonRequest.get("colorId").getAsString();
+        String price = jsonRequest.get("price").getAsString();
+        String quantity = jsonRequest.get("quantity").getAsString();
 
         // Get image files (optional for update)
-        Part image1 = request.getPart("image1");
-        Part image2 = request.getPart("image2");
-        Part image3 = request.getPart("image3");
+        Enumeration<String> parameterNames = request.getParameterNames();
+        Map<String, Part> images = new HashMap<>();
+        while (parameterNames.hasMoreElements()) {
+            if (parameterNames.nextElement().startsWith("image")) {
+                images.put(parameterNames.nextElement(), request.getPart(parameterNames.nextElement()));
+            }
+        }
 
         // Start a Hibernate session
         Session session = HibernateUtil.getSessionFactory().openSession();
@@ -70,14 +87,15 @@ public class UpdateProduct extends HttpServlet {
                 responseDTO.setContent("Invalid Quantity");
             } else {
                 // Fetch product from database
-                Product product = (Product) session.get(Product.class, Integer.parseInt(productId));
+                Product product = (Product) session.get(Product.class, Integer.valueOf(productId));
+                System.out.println("product: " + product);
                 if (product == null) {
                     responseDTO.setContent("Product not found");
                 } else {
                     // Fetch related entities
-                    Category category = (Category) session.get(Category.class, Integer.parseInt(categoryId));
-                    Model model = (Model) session.get(Model.class, Integer.parseInt(modelId));
-                    Color color = (Color) session.get(Color.class, Integer.parseInt(colorId));
+                    Category category = (Category) session.get(Category.class, Integer.valueOf(categoryId));
+                    Model model = (Model) session.get(Model.class, Integer.valueOf(modelId));
+                    Color color = (Color) session.get(Color.class, Integer.valueOf(colorId));
 
                     if (category == null) {
                         responseDTO.setContent("Invalid Category");
@@ -88,7 +106,6 @@ public class UpdateProduct extends HttpServlet {
                     } else {
                         // Update product details
                         session.beginTransaction();
-                        product.setCategory(category);
                         product.setModel(model);
                         product.setColor(color);
                         product.setTitle(title);
@@ -99,14 +116,15 @@ public class UpdateProduct extends HttpServlet {
                         session.getTransaction().commit();
 
                         // Update product images (if provided)
-                        updateProductImages(request, image1, image2, image3, product.getId());
+                        updateProductImages(request, images, product.getId());
 
                         responseDTO.setSuccess(true);
                         responseDTO.setContent("Product updated successfully");
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (IOException | NumberFormatException e) {
+            e.printStackTrace();
             session.getTransaction().rollback();
             responseDTO.setContent("Error: " + e.getMessage());
         } finally {
@@ -117,37 +135,27 @@ public class UpdateProduct extends HttpServlet {
         response.getWriter().write(gson.toJson(responseDTO));
     }
 
-    private void updateProductImages(HttpServletRequest request, Part image1, Part image2, Part image3, int productId) throws IOException {
+    private void updateProductImages(HttpServletRequest request, Map<String, Part> images, int productId)
+            throws IOException {
         String applicationPath = request.getServletContext().getRealPath("");
-        String imagesPath = applicationPath.replace("build" + File.separator + "web", "web") + "/product-images/" + productId;
+        String imagesPath = applicationPath.replace("build" + File.separator + "web", "web") + "/product-images/"
+                + productId;
 
         File imagesFolder = new File(imagesPath);
         if (!imagesFolder.exists()) {
             imagesFolder.mkdir();
         }
 
-        // Update image1 (if provided)
-        if (image1 != null && image1.getSubmittedFileName() != null) {
-            File file1 = new File(imagesFolder, "image1.png");
-            try (InputStream inputStream1 = image1.getInputStream()) {
-                Files.copy(inputStream1, file1.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        // Update images (if provided)
+        images.forEach((name, image) -> {
+            if (image != null && image.getSubmittedFileName() != null) {
+                File file1 = new File(imagesFolder, name);
+                try (InputStream inputStream1 = image.getInputStream()) {
+                    Files.copy(inputStream1, file1.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException ex) {
+                    Logger.getLogger(UpdateProduct.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
-        }
-
-        // Update image2 (if provided)
-        if (image2 != null && image2.getSubmittedFileName() != null) {
-            File file2 = new File(imagesFolder, "image2.png");
-            try (InputStream inputStream2 = image2.getInputStream()) {
-                Files.copy(inputStream2, file2.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            }
-        }
-
-        // Update image3 (if provided)
-        if (image3 != null && image3.getSubmittedFileName() != null) {
-            File file3 = new File(imagesFolder, "image3.png");
-            try (InputStream inputStream3 = image3.getInputStream()) {
-                Files.copy(inputStream3, file3.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            }
-        }
+        });
     }
 }
