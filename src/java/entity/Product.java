@@ -41,11 +41,11 @@ public class Product implements Serializable {
 
     @ManyToOne
     @JoinColumn(name = "model_id")
-    private Model model;  
-    
+    private Model model;
+
     @ManyToOne
     @JoinColumn(name = "color_id")
-    private Color color; 
+    private Color color;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
@@ -118,7 +118,6 @@ public class Product implements Serializable {
         this.model = model;
     }
 
-
     public User getUser() {
         return user;
     }
@@ -134,9 +133,4 @@ public class Product implements Serializable {
     public void setColor(Color color) {
         this.color = color;
     }
-
-    public void setCategory(Category category) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
 }

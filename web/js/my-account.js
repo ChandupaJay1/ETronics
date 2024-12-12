@@ -1,5 +1,5 @@
-var modelList;
-var productList;
+let modelList = []
+let productList = []
 
 async function loadFeatures() {
     try {
@@ -63,16 +63,17 @@ function updateModels() {
 
 
 function fillProductDetails(productId) {
-    const product = productList?.find(p => p.id == productId);
+    console.dir(productList, productId);
+    const product = productList.find(p => p.id == productId);
     if (product) {
-        document.getElementById("category-select").value = product.category.id;
+        document.getElementById("category-select").value = product.model.category.id;
         updateModels();
         document.getElementById("model-select").value = product.model.id;
         document.getElementById("title").value = product.title;
         document.getElementById("description").value = product.description;
         document.getElementById("colorSelect").value = product.color.id;
         document.getElementById("price").value = product.price;
-        document.getElementById("quantity").value = product.quantity;
+        document.getElementById("quantity").value = product.qty;
     } else {
         console.warn(`Product with ID ${productId} not found.`);
     }
@@ -89,12 +90,12 @@ function fillProductDetails(productId) {
         const image1 = document.getElementById("image1");
         const image2 = document.getElementById("image2");
         const image3 = document.getElementById("image3");
-    
+
         if (!categorySelect || !modelSelect || !title || !description || !colorTag || !price || !quantity) {
             console.error("One or more required elements are missing in the DOM.");
             return;
         }
-    
+
         const data = new FormData();
         data.append("categoryId", categorySelect.value);
         data.append("modelId", modelSelect.value);
@@ -102,21 +103,21 @@ function fillProductDetails(productId) {
         data.append("description", description.value);
         data.append("colorId", colorTag.value);
         data.append("price", price.value);
-        data.append("quantity", quantity.value);
+        data.append("quantity", qty.value);
         if (image1?.files[0]) data.append("image1", image1.files[0]);
         if (image2?.files[0]) data.append("image2", image2.files[0]);
         if (image3?.files[0]) data.append("image3", image3.files[0]);
-    
+
         try {
             const response = await fetch("ProductListing1", {
                 method: "POST",
                 body: data,
             });
-    
+
             if (response.ok) {
                 const json = await response.json();
                 const popup = new Notification();
-    
+
                 if (json.success) {
                     // Reset form
                     categorySelect.value = 0;
@@ -129,7 +130,7 @@ function fillProductDetails(productId) {
                     if (image1) image1.value = null;
                     if (image2) image2.value = null;
                     if (image3) image3.value = null;
-    
+
                     popup.success({
                         message: json.content,
                     });
@@ -146,5 +147,5 @@ function fillProductDetails(productId) {
         }
     }
 
-// Function to update a product
+    // Function to update a product
 }
