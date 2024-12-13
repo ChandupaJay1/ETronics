@@ -59,8 +59,9 @@ public class UpdateProduct extends HttpServlet {
         Enumeration<String> parameterNames = request.getParameterNames();
         Map<String, Part> images = new HashMap<>();
         while (parameterNames.hasMoreElements()) {
-            if (parameterNames.nextElement().startsWith("image")) {
-                images.put(parameterNames.nextElement(), request.getPart(parameterNames.nextElement()));
+            String imageName = parameterNames.nextElement();
+            if (imageName.startsWith("image")) {
+                images.put(imageName, request.getPart(imageName));
             }
         }
 
@@ -146,7 +147,7 @@ public class UpdateProduct extends HttpServlet {
             imagesFolder.mkdir();
         }
 
-        // Update images (if provided) 
+        // Update images (if provided)
         for (Map.Entry<String, Part> entry : images.entrySet()) {
             String name = entry.getKey();
             Part image = entry.getValue();

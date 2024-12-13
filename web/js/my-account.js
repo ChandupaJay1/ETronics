@@ -32,7 +32,7 @@ async function loadFeatures() {
 function loadSelect(selectTagId, list, property) {
     const selectTag = document.getElementById(selectTagId);
     if (!selectTag) {
-//        console.error(`Element with ID ${selectTagId} not found.`);
+        //        console.error(`Element with ID ${selectTagId} not found.`);
         return;
     }
 
@@ -102,32 +102,46 @@ async function productListing() {
         return;
     }
 
-    const data = new FormData();
-    data.append("categoryId", categorySelect.value);
-    data.append("modelId", modelSelect.value);
-    data.append("title", title.value);
-    data.append("description", description.value);
-    data.append("colorId", colorTag.value);
-    data.append("price", price.value);
-    data.append("quantity", quantity.value);
-    if (image1?.files[0])
-        data.append("image1", image1.files[0]);
-    if (image2?.files[0])
-        data.append("image2", image2.files[0]);
-    if (image3?.files[0])
-        data.append("image3", image3.files[0]);
+    const formData = new FormData();
+    formData.append("categoryId", categorySelect.value);
+    formData.append("modelId", modelSelect.value);
+    formData.append("title", title.value);
+    formData.append("description", description.value);
+    formData.append("colorId", colorTag.value);
+    formData.append("price", price.value);
+    formData.append("quantity", quantity.value);
+    formData.append("image1", image1.files[0]);
+    formData.append("image2", image2.files[0]);
+    formData.append("image3", image3.files[0]);
+
+    console.dir(image1.files[0]);
+    console.dir(image2.files[0]);
+    console.dir(image3.files[0]);
+
+    /* const body = {
+        categoryId: categorySelect.value,
+        modelId: modelSelect.value,
+        title: title.value,
+        description: description.value,
+        colorId: colorTag.value,
+        price: price.value,
+        quantity: quantity.value,
+        image1: image1.files[0],
+        image2: image2.files[0],
+        image3: image3.files[0],
+    } */
 
     try {
         const response = await fetch("ProductListing1", {
             method: "POST",
-            body: data,
+            body: formData,
         });
 
         if (response.ok) {
-            const json = await response.json();
+            const jsonRes = await response.json();
             const popup = new Notification();
 
-            if (json.success) {
+            if (jsonRes.success) {
                 // Reset form
                 categorySelect.value = 0;
                 modelSelect.value = 0;
@@ -144,11 +158,11 @@ async function productListing() {
                     image3.value = null;
 
                 popup.success({
-                    message: json.content,
+                    message: jsonRes.content,
                 });
             } else {
                 popup.error({
-                    message: json.content,
+                    message: jsonRes.content,
                 });
             }
         } else {
