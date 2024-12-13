@@ -2,6 +2,7 @@ package controller;
 
 import java.nio.file.Files;
 import com.google.gson.Gson;
+
 import dto.Response_DTO;
 import dto.User_DTO;
 import entity.Category;
@@ -14,7 +15,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -33,12 +41,11 @@ import org.hibernate.criterion.Restrictions;
 public class ProductListing1 extends HttpServlet {
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
-        Response_DTO response_DTO = new Response_DTO();
-
+        Response_DTO responseDTO = new Response_DTO();
         Gson gson = new Gson();
-
         String categoryId = request.getParameter("categoryId");
         String modelId = request.getParameter("modelId");
         String title = request.getParameter("title");
@@ -47,129 +54,155 @@ public class ProductListing1 extends HttpServlet {
         String price = request.getParameter("price");
         String quantity = request.getParameter("quantity");
 
-        Part image1 = request.getPart("image1");
-        Part image2 = request.getPart("image2");
-        Part image3 = request.getPart("image3");
+        // Part image1 = request.getPart("image1");
+        // Part image2 = request.getPart("image2");
+        // Part image3 = request.getPart("image3");
+        /*
+         * JsonObject jsonRequest = gson.fromJson(request.getReader(),
+         * JsonObject.class);
+         * 
+         * String categoryId = jsonRequest.get("categoryId").getAsString();
+         * String modelId = jsonRequest.get("modelId").getAsString();
+         * String title = jsonRequest.get("title").getAsString();
+         * String description = jsonRequest.get("description").getAsString();
+         * String colorId = jsonRequest.get("colorId").getAsString();
+         * String price = jsonRequest.get("price").getAsString();
+         * String quantity = jsonRequest.get("quantity").getAsString();
+         */
+        // Get image files (optional for update)
+        Collection<Part> parts = request.getParts();
+        Map<String, Part> images = new HashMap<>();
+        Iterator<Part> partsIterator = parts.iterator();
+        int i = 1;
+
+        while (partsIterator.hasNext()) {
+            Part param = partsIterator.next();
+            String paramName = param.getName();
+            if (paramName.startsWith("image")) {
+                System.out.println("parameterName: " + param);
+                images.put("image" + i + ".png", param);
+                i++;
+            }
+        }
 
         Session session = HibernateUtil.getSessionFactory().openSession();
 
         if (!Validation.isInteger(categoryId)) {
-            response_DTO.setContent("Invalid Category");
+            responseDTO.setContent("Invalid Category");
 
         } else if (!Validation.isInteger(modelId)) {
-            response_DTO.setContent("Invalid Model");
+            responseDTO.setContent("Invalid Model");
 
         } else if (title.isEmpty()) {
-            response_DTO.setContent("Please fill Title");
+            responseDTO.setContent("Please fill Title");
 
         } else if (description.isEmpty()) {
-            response_DTO.setContent("Please fill Description");
+            responseDTO.setContent("Please fill Description");
 
-        }else if (!Validation.isInteger(colorId)) {
+        } else if (!Validation.isInteger(colorId)) {
 
-            response_DTO.setContent("Invalid color");
+            responseDTO.setContent("Invalid color");
 
         } else if (price.isEmpty()) {
-            response_DTO.setContent("Please fill Price");
+            responseDTO.setContent("Please fill Price");
 
         } else if (!Validation.isDouble(price)) {
-            response_DTO.setContent("Invalid price");
+            responseDTO.setContent("Invalid price");
 
         } else if (Double.parseDouble(price) <= 0) {
-            response_DTO.setContent("Price must be greater than 0");
+            responseDTO.setContent("Price must be greater than 0");
 
         } else if (quantity.isEmpty()) {
-            response_DTO.setContent("Invalid Quantity");
+            responseDTO.setContent("Invalid Quantity");
 
         } else if (!Validation.isInteger(quantity)) {
-            response_DTO.setContent("Invalid Quantity");
+            responseDTO.setContent("Invalid Quantity");
 
         } else if (Integer.parseInt(quantity) <= 0) {
-            response_DTO.setContent("Quantity must be greater than 0");
+            responseDTO.setContent("Quantity must be greater than 0");
 
-        } else if (image1.getSubmittedFileName() == null) {
-            response_DTO.setContent("Please upload image1");
-
-        } else if (image2.getSubmittedFileName() == null) {
-            response_DTO.setContent("Please upload image2");
-
-        } else if (image3.getSubmittedFileName() == null) {
-            response_DTO.setContent("Please upload image3");
+        } else if (images.size() < 3) {
+            responseDTO.setContent("Please upload 3 images");
 
         } else {
 
-            Category category = (Category) session.get(Category.class, Integer.parseInt(categoryId));
+            Category category = (Category) session.get(Category.class, Integer.valueOf(categoryId));
 
             if (category == null) {
-                response_DTO.setContent("Please select a valid Category");
+                responseDTO.setContent("Please select a valid Category");
 
             } else {
 
-                Model model = (Model) session.get(Model.class, Integer.parseInt(modelId));
+                Model model = (Model) session.get(Model.class, Integer.valueOf(modelId));
 
                 if (model == null) {
-                    response_DTO.setContent("Please select a valid Model");
+                    responseDTO.setContent("Please select a valid Model");
 
                 } else {
 
                     if (model.getCategory().getId() != category.getId()) {
-                        response_DTO.setContent("Please select a valid Model");
+                        responseDTO.setContent("Please select a valid Model");
 
-                    }else {
+                    } else {
 
-                            Color color = (Color) session.get(Color.class, Integer.parseInt(colorId));
+                        Color color = (Color) session.get(Color.class, Integer.valueOf(colorId));
 
-                            if (color == null) {
+                        if (color == null) {
 
-                                response_DTO.setContent("Please select a valid color");
+                            responseDTO.setContent("Please select a valid color");
 
-                            }  else {
-                        //to do Insert
+                        } else {
+                            // to do Insert
 
-                        Product product = new Product();
-                        product.setColor(color);
-                        product.setDate_time(new Date());
-                        product.setDescription(description);
-                        product.setModel(model);
-                        product.setPrice(Double.parseDouble(price));
+                            Product product = new Product();
+                            product.setColor(color);
+                            product.setDate_time(new Date());
+                            product.setDescription(description);
+                            product.setModel(model);
+                            product.setPrice(Double.parseDouble(price));
 
-                        Product_Status product_Status = (Product_Status) session.load(Product_Status.class, 1);
-                        product.setProductStatus(product_Status);
-                        product.setQty(Integer.parseInt(quantity));
-                        product.setTitle(title);
+                            Product_Status product_Status = (Product_Status) session.load(Product_Status.class, 1);
+                            product.setProductStatus(product_Status);
+                            product.setQty(Integer.parseInt(quantity));
+                            product.setTitle(title);
 
-                        //get user
-                        User_DTO userDto = (User_DTO) request.getSession().getAttribute("user");
-                        Criteria criteria1 = session.createCriteria(User.class);
-                        criteria1.add(Restrictions.eq("email", userDto.getEmail()));
-                        User user = (User) criteria1.uniqueResult();
-                        product.setUser(user);
+                            // get user
+                            User_DTO userDto = (User_DTO) request.getSession().getAttribute("user");
+                            Criteria criteria1 = session.createCriteria(User.class);
+                            criteria1.add(Restrictions.eq("email", userDto.getEmail()));
+                            User user = (User) criteria1.uniqueResult();
+                            product.setUser(user);
 
-                        int pid = (int) session.save(product);
-                        session.beginTransaction().commit();
+                            session.beginTransaction();
+                            int pid = (int) session.save(product);
+                            session.getTransaction().commit();
 
-                        String applicationPath = request.getServletContext().getRealPath("");
-                        String newApplicationPath = applicationPath.replace("build" + File.separator + "web", "web");
+                            String applicationPath = request.getServletContext().getRealPath("");
+                            String newApplicationPath = applicationPath.replace("build" + File.separator + "web",
+                                    "web");
 
-                        File folder = new File(newApplicationPath + "/product-images/" + pid);
-                        folder.mkdir();
+                            File folder = new File(newApplicationPath + "/product-images/" + pid);
+                            folder.mkdir();
 
-                        File file1 = new File(folder, "image1.png");
-                        InputStream inputStream1 = image1.getInputStream();
-                        Files.copy(inputStream1, file1.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                        System.out.println(inputStream1);
+                            // Update images (if provided)
+                            for (Map.Entry<String, Part> entry : images.entrySet()) {
+                                String name = entry.getKey();
+                                Part image = entry.getValue();
 
-                        File file2 = new File(folder, "image2.png");
-                        InputStream inputStream2 = image2.getInputStream();
-                        Files.copy(inputStream2, file2.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                        
+                                if (image != null && image.getSubmittedFileName() != null) {
+                                    File file1 = new File(folder, name);
+                                    try (InputStream inputStream1 = image.getInputStream()) {
+                                        Files.copy(inputStream1, file1.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                    } catch (IOException ex) {
+                                        Logger.getLogger(UpdateProduct.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
+                                }
+                            }
 
-                        File file3 = new File(folder, "image3.png");
-                        InputStream inputStream3 = image3.getInputStream();
-                        Files.copy(inputStream3, file3.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            responseDTO.setSuccess(true);
+                            responseDTO.setContent("New Product Addedd");
 
-                        response_DTO.setSuccess(true);
-                        response_DTO.setContent("New Product Addedd");
+                        }
 
                     }
 
@@ -177,13 +210,11 @@ public class ProductListing1 extends HttpServlet {
 
             }
 
-        }
-
-        response.setContentType("application/json");
-        response.getWriter().write(gson.toJson(response_DTO));
-        session.close();
+            response.setContentType("application/json");
+            response.getWriter().write(gson.toJson(responseDTO));
+            session.close();
 
         }
-        
+
     }
 }
