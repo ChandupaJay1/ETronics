@@ -146,8 +146,11 @@ public class UpdateProduct extends HttpServlet {
             imagesFolder.mkdir();
         }
 
-        // Update images (if provided)
-        images.forEach((name, image) -> {
+        // Update images (if provided) 
+        for (Map.Entry<String, Part> entry : images.entrySet()) {
+            String name = entry.getKey();
+            Part image = entry.getValue();
+
             if (image != null && image.getSubmittedFileName() != null) {
                 File file1 = new File(imagesFolder, name);
                 try (InputStream inputStream1 = image.getInputStream()) {
@@ -156,6 +159,6 @@ public class UpdateProduct extends HttpServlet {
                     Logger.getLogger(UpdateProduct.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-        });
+        }
     }
 }
